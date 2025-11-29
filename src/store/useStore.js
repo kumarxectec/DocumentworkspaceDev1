@@ -23,9 +23,10 @@ import {
   fetchFolderContents,
   fetchClientFolders,
   fetchFolderTree,
-  fetchFullFolderTree,
   uploadFilesToClientFolder,
   fetchUserSecurityGroup,
+  pasteDocumentPath,
+  getDocumentFileById
 } from "@/services/api";
 import { devtools, persist } from "zustand/middleware";
 import { toast } from "sonner";
@@ -53,6 +54,8 @@ const useStore = create(
         selectedDocumentId: null,
         documentData: null,
         selectedDocument: null,
+        aiPrompt: null,
+        setAiPrompt: (value) => set({ aiPrompt: value }),
         setSelectedDocument: (value) => set({ selectedDocument: value }),
 
         //UI ( dialogs and sidebar )
@@ -62,7 +65,7 @@ const useStore = create(
         isEditCollectionDialogOpen: false,
         isSourcesDialogOpen: false,
         isCollapsed: false,
-        isUploadable: true,
+        isUploadable: false,
 
         //collections ( existing collection / new collection )
         collections: [],
@@ -80,7 +83,47 @@ const useStore = create(
         uploadedFiles: [],
         activeTab: "upload", // state of client-folder-upload-tab
         setActiveTab: (value) => set({ activeTab: value }), // state of client-folder-upload-tab
+        //selected componet
+        multiSelectedDocs: [],
 
+        setMultiSelectedDocs: (updater) =>
+          set((state) => ({
+            multiSelectedDocs: typeof updater === "function"
+              ? updater(state.multiSelectedDocs)
+              : updater,
+          })),
+        removeSelectedDoc: (id) =>
+          set((state) => ({
+            SelectedFileNameAndId: state.SelectedFileNameAndId.filter(
+              (doc) => doc.id !== id
+            ),
+            // multiSelectedDocs: state.multiSelectedDocs.filter(
+            //   (doc) => doc.id !== id
+            // ),
+          })),
+
+        // ❌ Clear all selected documents
+        clearMultiSelectedDocs: () =>
+          set(() => ({
+            SelectedFileNameAndId: [],
+          })),
+        folderTreePath: "",
+
+        setFolderTreePath: (value) =>
+          set(() => ({
+            folderTreePath: value,
+          })),
+        pasteClipboardButtonEnable: false,
+
+        setPasteClipboardButtonEnable: (value) =>
+          set(() => ({
+            pasteClipboardButtonEnable: value,
+          })),
+        pasteTrigger: 0,
+        setPasteTrigger: (value) =>
+          set(() => ({
+            pasteTrigger: value,
+          })),
         //folder
         clientFolderOptions: [],
         clientFolderPage: 1,
@@ -111,15 +154,12 @@ const useStore = create(
           set({ fileDocumentTitles: {} });
         },
 
+        setIsClientFolderLoading: (status) => set({ isClientFolderLoading: status }),
+        setSelectedFolder: (folder) => set({ selectedFolder: folder }),
         selectedFolderNode: null,
         setSelectedFolderNode: (folder) => set({ selectedFolderNode: folder }),
         selectedClient: null,
-        setSelectedClient: (client) => set({ selectedClient: client  }),
-        setSelectedUploadFolder: (value) => set({ selectedUploadFolder: value }),
-
-        setIsClientFolderLoading: (status) => set({ isClientFolderLoading: status }),
-        setIsClientFullFolderLoading: (status) => set({ isClientFullFolderLoading: status }),
-        setSelectedFolder: (folder) => set({ selectedFolder: folder }),
+        setSelectedClient: (client) => set({ selectedClient: client }),
         setFolderTemplatesList: (templatesList) => set({ folderTemplatesList: templatesList }),
         setSelectedFolderTemplates: (templates) => set({ selectedFolderTemplates: templates }),
         folderLoading: {}, // map of path -> true/false
@@ -143,7 +183,7 @@ const useStore = create(
           set({ uploadedViaAddSource: value }),
 
         uploadSource: null,
-     
+
         selectedDocumentId: null,
         collectionTabClosed: false,
         selectedTabs: { options: [] },
@@ -348,10 +388,10 @@ const useStore = create(
               );
 
               // Check if Metadata already exists
-              const hasMetadata = preservedTabs.some(tab => tab.name === "Chat");
+              const hasMetadata = preservedTabs.some(tab => tab.name === "Metadata");
 
               // Tabs to add for the new document
-              const newTabs = (tabsList || []).filter(tab => tab.name === "Preview" || tab.name === "Metadata"
+              const newTabs = (tabsList || []).filter(tab => tab.name === "Preview" || tab.name === "Chat"
               );
 
               // Include normalMetadataTab if not already present
@@ -450,6 +490,91 @@ const useStore = create(
             }
           }
         },
+        PastedDocumentId: "",
+        pasteDocumentMainPath: async (payload) => {
+          try {
+            const res = await pasteDocumentPath(payload);
+            console.log(res, "paste response");
+            set({ PastedDocumentId: res.data.Data });
+
+            return res;
+          } catch (error) {
+            set({ apiError: error.message });
+          }
+        },
+        SelectedFileNameAndId: [],
+
+        //  getDocumentFileNameByID: async (id) => {
+        //     try {
+        //       if (!id) {
+        //         console.warn("❗ ID is empty");
+        //         return;
+        //       }
+
+        //       console.log("➡ Fetching document for ID:", id);
+
+        //       const res = await getDocumentFileById(id);
+        //       console.log("API Response:", res);
+
+        //       if (res?.Document) {
+        //         const fileId = res.Document.ID;
+        //         const fileName = res.Document.FileName;
+
+        //         set((state) => {
+        //           const exists = state.SelectedFileNameAndId.some(
+        //             (item) => item.id === fileId
+        //           );
+
+        //           if (exists) {
+        //             console.log("⚠ Already exists, skipping:", { fileId, fileName });
+        //             return {};
+        //           }
+
+        //           const updatedArray = [
+        //             ...state.SelectedFileNameAndId,
+        //             { id: fileId, fileName },
+        //           ];
+
+        //           console.log("✅ Saved →", updatedArray);
+
+        //           return {
+        //             SelectedFileNameAndId: updatedArray,
+        //           };
+        //         });
+        //       }
+
+        //       return res;
+        //     } catch (error) {
+        //       console.error("API error:", error);
+        //       set({ apiError: error.message });
+        //     }
+        //   },
+        getDocumentFileNameByID: async (id) => {
+          if (!id) return;
+
+          console.log("Fetching:", id);
+          const res = await getDocumentFileById(id);
+
+          if (res?.Document) {
+            const fileId = res.Document.ID;
+            const fileName = res.Document.FileName;
+
+            set(state => {
+              if (state.SelectedFileNameAndId.some(x => x.id === fileId)) {
+                return {};
+              }
+              return {
+                SelectedFileNameAndId: [
+                  ...state.SelectedFileNameAndId,
+                  { id: fileId, fileName }
+                ]
+              };
+            });
+          }
+
+          return res;
+        },
+
 
         getWorkspaceCollections: async () => {
           set({ collections: [], apiError: null });
@@ -625,7 +750,7 @@ const useStore = create(
               hasMoreClientFolders: res.pagination?.more ?? false,
               clientFolderPage: page,
             }));
-          } catch(error) {
+          } catch (error) {
             console.error("Error fetching client folders:", error);
             set({ clientFolderOptions: [] });
           } finally {
@@ -633,108 +758,7 @@ const useStore = create(
           }
         },
 
-      getFullFolderTreeByPath: async (path, includeSubfolders = false) => {
-          const setFullFolderLoading = get().setFolderLoading;
 
-          try {
-            if (!path) throw new Error("Path required");
-            console.log(path, '📂 path in getFolderTreeByPath');
-
-            setFullFolderLoading(path, true);
-
-            const { selectedFolderTree } = get();
-            const folderData = await fetchFullFolderTree(path, includeSubfolders);
-            // const folderData = mockFolderTreeResponse
-            const folderFromApi = folderData?.data?.folder || folderData?.data;
-            // const folderFromApi = folderData?.folder || folderData?.data;
-
-            if (!folderFromApi || Object.keys(folderFromApi).length === 0) {
-              toast.error("No Data Found!", errorToastObj);
-              set({ selectedFolderTree: null });
-              return;
-            }
-
-            // If we already have a tree, merge it with the new one
-            if (selectedFolderTree && selectedFolderTree.folder) {
-              const mergeFolders = (currentFolder, newFolder) => {
-                if (currentFolder.path === newFolder.path) {
-                  return {
-                    ...currentFolder,
-                    ...newFolder,
-                    childFolder: newFolder?.childFolder || currentFolder?.childFolder || [],
-                  };
-                }
-
-                if (currentFolder?.childFolder) {
-                  return {
-                    ...currentFolder,
-                    childFolder: currentFolder.childFolder.map(child =>
-                      mergeFolders(child, newFolder)
-                    ),
-                  };
-                }
-
-                return currentFolder;
-              };
-
-              const mergedTree = {
-                ...selectedFolderTree,
-                folder: mergeFolders(selectedFolderTree.folder, folderFromApi),
-              };
-
-              set({ selectedFolderTree: mergedTree });
-
-            } else {
-              // First time folder tree
-              set({
-                selectedFolderTree: {
-                  folder: folderFromApi,
-                },
-              });
-
-
-            }
-
-            return folderData
-
-          } catch (error) {
-            console.error("❌ Error in getFolderTreeByPath:", error.message);
-            set({ selectedFolderTree: null });
-          } finally {
-            setFullFolderLoading(path, false);
-          }
-        },
-       
-
-          getTemplatesOnFullFolderSelect: async (path, includeSubfolders = false) => {
-          const setFolderLoading = get().setFolderLoading;
-
-          try {
-            if (!path) throw new Error("Path required");
-            console.log(path, '📂 path in getTemplatesOnFolderSelect');
-
-            const { selectedFolderTree } = get();
-            const folderData = await fetchFullFolderTree(path, includeSubfolders);
-            // const folderData = mockFolderTreeResponse
-            const folderFromApi = folderData?.data?.folder || folderData?.data;
-            // const folderFromApi = folderData?.folder || folderData?.data;
-
-            if (!folderFromApi || Object.keys(folderFromApi).length === 0) {
-              toast.error("No Data Found!", errorToastObj);
-              set({ selectedFolderTree: null });
-              return;
-            }
-
-            console.log(folderData, 'folderdata in getTemplatesOnFolderSelect')
-
-
-          } catch (error) {
-            console.error("❌ Error in getFolderTreeByPath:", error.message);
-            set({ selectedFolderTree: null });
-          } finally {
-            setFolderLoading(path, false);
-          }
-        },
         getFolderTreeByPath: async (path, includeSubfolders = false) => {
           const setFolderLoading = get().setFolderLoading;
 
@@ -901,75 +925,89 @@ const useStore = create(
         },
 
         uploadInProgressFilesFromDnD: async (files, folder, startAiChat, documentTitles) => {
-        set({ documentsList: null, apiError: null });
-        const selectedFolderTemplates = get().selectedFolderTemplates;
-        const { configs } = get();
 
-        console.log(folder, documentTitles, "folder in upload func in storeeeeeeeeeeee");
+          const fileIds = files
+            .filter((f) => f.id)
+            .map((f) => f.id.toString());
+          console.log("fileIds", fileIds, 'files', files)
+          set({ documentsList: null, apiError: null });
+          const selectedFolderTemplates = get().selectedFolderTemplates;
+          const { configs, folderTreePath } = get();
 
-        const getRepoName = () => {
-          const { configs } = useStore.getState();
-          return configs?.NEXT_PUBLIC_REPOSITORY_NAME || "";
-        };
-        const REPO_NAME = getRepoName();
+          console.log(folderTreePath, documentTitles, "folder in upload func in storeeeeeeeeeeee");
 
-        if (files.length !== 0) {
-          try {
-            const filePromises = files.map((file) => fileToBase64(file));
-            const base64Files = await Promise.all(filePromises);
+          const getRepoName = () => {
+            const { configs } = useStore.getState();
+            return configs?.NEXT_PUBLIC_REPOSITORY_NAME || "";
+          };
+          const REPO_NAME = getRepoName();
 
-            const fileData = base64Files.map((base64Data, index) => {
-              const fileName = files[index].name;
-              const title = documentTitles?.[fileName] || ""; // match document title if exists
+          if (files.length !== 0) {
+            try {
+              // const filePromises = files.map((file) => fileToBase64(file));
+              const filePromises = files.map((file) =>
+                file.id ? Promise.resolve("") : fileToBase64(file)
+              );
+              const base64Files = await Promise.all(filePromises);
 
-              return {
-                FromID: "",
-                CopyFromTemplate: "",
-                Actions: JSON.stringify({}), // required object
-                FolderProperties: JSON.stringify({}), // required object
-                ClientType: 1,
-                Folder: folder || "",
-                File: fileName,
-                LocalFile: "",
-                IsNew: false,
-                Filename: fileName,
-                SecCode: "",
-                TemplateName: selectedFolderTemplates || "",
-                Properties: [], // array of property objects if available
-                Tags: [], // array of tags if available
-                Data: base64Data,
-                VolumeID: -1,
-                Clients: [], // required array
-                EntityId: "",
-                DocumentTitle: title, // ✅ added title inside each file
+              const fileData = base64Files.map((base64Data, index) => {
+                const file = files[index];
+                const fileName = file.name;
+                const fileId = file.id ? file.id.toString() : "";
+                const title = documentTitles?.[fileName] || "";
+
+                return {
+                  FromID: fileId,
+                  CopyFromTemplate: fileId ? "Y" : "",
+                  Actions: JSON.stringify({}),
+                  FolderProperties: JSON.stringify({}),
+                  ClientType: 1,
+                  Folder: folderTreePath || "",
+
+                  // If FromID exists → no need to send File/Filename
+                  File: fileName,
+                  LocalFile: "",
+                  IsNew: false,
+                  Filename: fileName,
+
+                  SecCode: "",
+                  TemplateName: selectedFolderTemplates || "",
+                  Properties: [],
+                  Tags: [],
+                  Data: base64Data,
+                  VolumeID: -1,
+                  Clients: [],
+                  EntityId: "",
+                  DocumentTitle: title,
+                };
+              });
+
+
+              const payload = {
+                Repository: REPO_NAME,
+                Files: fileData, // now each file contains its own DocumentTitle
+                IsCreated: true,
+                EnableAI: startAiChat ? "Y" : "N",
+                CreateTemplate: "Y",
+                WithVirtualFolder: "N",
+                VirutalFolder: "", // spelling kept as in schema
               };
-            });
 
-            const payload = {
-              Repository: REPO_NAME,
-              Files: fileData, // now each file contains its own DocumentTitle
-              IsCreated: true,
-              EnableAI: startAiChat ? "Y" : "N",
-              CreateTemplate: "Y",
-              WithVirtualFolder: "N",
-              VirutalFolder: "", // spelling kept as in schema
-            };
+              console.log("Final payload (DnD):", payload);
 
-            console.log("Final payload (DnD):", payload);
+              const res = await uploadFilesToClientFolder(
+                payload,
+                configs?.UPLOAD_TO_CLIENT_FOLDER_SERVICE_ENDPOINT
+              );
 
-            const res = await uploadFilesToClientFolder(
-              payload,
-              configs?.UPLOAD_TO_CLIENT_FOLDER_SERVICE_ENDPOINT
-            );
-
-            set({ documentsList: res?.data.DocumentList });
-            return res;
-          } catch (error) {
-            console.error("error uploading to client folder", error);
-            set({ apiError: error.message });
+              set({ documentsList: res?.data.DocumentList });
+              return res;
+            } catch (error) {
+              console.error("error uploading to client folder", error);
+              set({ apiError: error.message });
+            }
           }
-        }
-      },
+        },
 
 
 

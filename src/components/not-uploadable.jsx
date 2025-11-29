@@ -13,13 +13,13 @@ const NotUploadableNotice = () => {
 
           <div className="text-center">
             <p className="text-gray-700 font-semibold text-xl mb-1">
-              Uploads Not Allowed
+              Upload Not Allowed
             </p>
-            <p className="text-gray-500 text-sm max-w-md mx-auto leading-relaxed">
+            {/* <p className="text-gray-500 text-sm max-w-md mx-auto leading-relaxed">
               Uploads are not permitted for this folder. Please select another
               folder that allows file uploads or contact your administrator for
               access.
-            </p>
+            </p> */}
           </div>
         </CardContent>
       </Card>

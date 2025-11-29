@@ -31,6 +31,23 @@ const getApi3Instance = () => {
   });
 };
 
+const getApi4Instance = () => {
+  const { configs } = useStore.getState();
+  return axios.create({
+    baseURL: configs?.NEXT_PUBLIC_DFX_API_DEMO_BASE_URL || "",
+    withCredentials: true,
+    headers: { "Content-Type": "application/json" },
+  });
+};
+const getApi5Instance = () => {
+  const { configs } = useStore.getState();
+  return axios.create({
+    baseURL: configs?.NEXT_PUBLIC_DFX_API_DOCUMENT_FILE_URL || "",
+    withCredentials: true,
+    headers: { "Content-Type": "application/json" },
+  });
+};
+
 const getRepoName = () => {
   const { configs } = useStore.getState();
   return configs?.NEXT_PUBLIC_REPOSITORY_NAME || "";
@@ -129,6 +146,9 @@ export const uploadFilesToClientFolder = async (payload, endpoint) => {
   try {
     const response = await api.post(endpoint, payload);
     console.log("Upload successful:", response);
+    if(response.status === 200){
+      localStorage.removeItem("CopyData")
+    }
     return response;
   } catch (error) {
     console.error("Upload error:", error);
@@ -208,40 +228,33 @@ export const fetchFolderTree = (rawPath = "") => {
 
   return api.post(configs?.FETCH_FOLDER_DATA_SERVICE_ENDPOINT, payload);
 };
-// #region Fetch Full folder
-export const fetchFullFolderTree = (rawPath = "") => {
+
+export const pasteDocumentPath = async (payload) => {
   const { configs } = useStore.getState();
-  const api = getApi3Instance();
-  const REPO_NAME = getRepoName();
-
-  // Clean the path:
-  const cleanPath = rawPath
-    .replace(/\\\\/g, "\\") // Convert double backslashes to single
-    .replace(/\s+$/g, "")   // Trim trailing whitespace
-    .replace(/\\+$/, ""); // Ensure exactly one trailing slash
-
-  const payload = {
-    profileId: 0,
-    isVirtual: true,
-    clientId: "",
-    clientName: "",
-    parentFolder:
-      cleanPath ||
-      '',
-    repository: REPO_NAME,
-    allData: true,
-    page: 0,
-    start: 0,
-    listType: "",
-    listField: "",
-    documentTypes: "",
-    includeSubFolder: true,
-    fileName: "",
-    searchText: "",
-  };
-
-  return api.post(configs?.FETCH_FULL_FOLDER_DATA_SERVICE_ENDPOINT, payload);
+  const api = getApi4Instance();
+  try {
+    const response = api.post(configs?.PASTE_DOCUMENT_ENDPOINT, payload);
+    console.log(response, "this is in paste API");
+    return response;
+  } catch (err) {
+    console.error("❌ Document paste error:", err);
+    throw err;
+  }
 };
+
+export const getDocumentFileById = async (ids) => {
+  try{
+    const { configs } = useStore.getState();
+    const api = getApi5Instance();
+    const url = `${configs.GET_DOCUMENTFILE_BY_ID_ENDPOINT}?id=${ids}`;
+    const response = await api.get(url);
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching templates:", error);
+    throw error;
+  }
+}
 
 export const fetchFrontOfficeTabs = async () => {
    const { configs } = useStore.getState();

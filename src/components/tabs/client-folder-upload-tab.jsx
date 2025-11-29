@@ -34,6 +34,7 @@ import { Input } from "../ui/input";
 import CollectionsDropdown from "../collections/collections-dropdown";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import NotUploadableNotice from "../not-uploadable";
+import { getDocumentFileById } from "@/services/api";
 
 const ClientFolderUploadTab = ({ tab }) => {
   // UI State
@@ -42,11 +43,11 @@ const ClientFolderUploadTab = ({ tab }) => {
   const [loading, setLoading] = useState(false);
   const [templateSearch, setTemplateSearch] = useState("");
   const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
-  
+
   const [showInfoNote, setShowInfoNote] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
   const [iframeError, setIframeError] = useState(false);
-
+  // const [enablePasteBtn,setEnablePasteBtn]= useState(false)
   const fileInputRef = useRef(null);
   const dragCounterRef = useRef(0);
 
@@ -76,29 +77,45 @@ const ClientFolderUploadTab = ({ tab }) => {
     folderTemplatesList,
     setSelectedFolderTemplates,
     selectedFolderTemplates,
-    fileDocumentTitles, 
-    setFileDocumentTitle, 
+    fileDocumentTitles,
+    setFileDocumentTitle,
     resetFileDocumentTitles,
     setFileDocumentTitles,
     selectedCollection,
     setSelectedCollection,
     setCollectionTags,
+    removeSelectedDoc,
     newCollectionName,
     setNewCollectionName,
     showNewCollectionInput,
     setShowNewCollectionInput,
     isLoadingCollections,
     collections,
+    clearMultiSelectedDocs,
     user,
+    pasteClipboardButtonEnable,
+    pasteTrigger,
+    folderTreePath,
+    multiSelectedDocs,
     configs,
+    PastedDocumentId,
     selectedClient,
-    selectedFolderNode
+    SelectedFileNameAndId,
+    getDocumentFileNameByID,
+    selectedFolderNode,
+    setFolderTreePath,
+    setPasteTrigger
   } = useStore();
 
   const { isFrontOffice } = useFrontOfficeStore();
   const MAX_FILES = configs?.MAX_FILES_SIZE || 20;
-
+  console.log("folderTreePath", folderTreePath)
+  console.log("PastedDocumentId", PastedDocumentId)
+  console.log("multiSelectedDocs", multiSelectedDocs)
+  console.log("SelectedFileNameAndId", SelectedFileNameAndId, pasteClipboardButtonEnable)
   // Get document title requirement from selected template
+  const [hoverPaste, setHoverPaste] = useState(false);
+
   const documentTitleRequirement = useMemo(() => {
     if (!selectedFolderTemplates || !Array.isArray(folderTemplatesList)) {
       return null;
@@ -122,6 +139,10 @@ const ClientFolderUploadTab = ({ tab }) => {
     );
   }, [documentTitleRequirement, selectedFolderTemplates, configs]);
 
+
+
+  // Fixed useEffect for multiSelectedDocs
+
   // Memoized filtered templates with search
   const filteredTemplates = useMemo(() => {
     if (!Array.isArray(folderTemplatesList)) return [];
@@ -135,43 +156,43 @@ const ClientFolderUploadTab = ({ tab }) => {
     });
   }, [folderTemplatesList, templateSearch]);
 
-const displayFolderName = useMemo(() => {
-  console.log('=== displayFolderName Calculation ===');
-  console.log('selectedClient:', selectedClient);
+  const displayFolderName = useMemo(() => {
+    console.log('=== displayFolderName Calculation ===');
+    console.log('selectedClient:', selectedClient);
 
-  const folderUrl = selectedClient?.url || "test-client";
-  console.log('selectedClient.url:', folderUrl);
+    const folderUrl = selectedClient?.url || " ";
+    console.log('selectedClient.url:', folderUrl);
 
-  return folderUrl;
-}, [selectedClient]);   // Correct dependency
+    return folderUrl;
+  }, [selectedClient]);   // Correct dependency
 
 
-// Get dynamic iframe URL based on selected folder
-const getDocumentSearchUrl = useCallback(() => {
-  console.log('=== getDocumentSearchUrl Called ===');
-  console.log('selectedFolderNode:', selectedFolderNode);
+  // Get dynamic iframe URL based on selected folder
+  const getDocumentSearchUrl = useCallback(() => {
+    console.log('=== getDocumentSearchUrl Called ===');
+    console.log('selectedFolderNode:', selectedFolderNode);
 
-  const baseUrl = configs?.DOCUMENT_SEARCH_URL;
-  console.log('baseUrl from configs:', baseUrl);
+    const baseUrl = configs?.DOCUMENT_SEARCH_URL;
+    console.log('baseUrl from configs:', baseUrl);
 
-  if (!baseUrl) {
-    console.error('DOCUMENT_SEARCH_URL not found in configs');
-    return '';
-  }
+    if (!baseUrl) {
+      console.error('DOCUMENT_SEARCH_URL not found in configs');
+      return '';
+    }
 
-  const selectedUrl = selectedFolderNode?.url || "test-folder";
-  console.log('selectedFolderNode.url:', selectedUrl);
+    const selectedUrl = selectedFolderNode?.url || " ";
+    console.log('selectedFolderNode.url:', selectedUrl);
 
-  const finalUrl = `${baseUrl}${displayFolderName}${selectedUrl}`;
+    const finalUrl = `${baseUrl}${displayFolderName}${selectedUrl}`;
 
-  console.log('=== Final URL Construction ===');
-  console.log('Base URL:', baseUrl);
-  console.log('Client Folder Name:', displayFolderName);
-  console.log('Selected URL:', selectedUrl);
-  console.log('Final constructed URL:', finalUrl);
+    console.log('=== Final URL Construction ===');
+    console.log('Base URL:', baseUrl);
+    console.log('Client Folder Name:', displayFolderName);
+    console.log('Selected URL:', selectedUrl);
+    console.log('Final constructed URL:', finalUrl);
 
-  return finalUrl;
-}, [configs?.DOCUMENT_SEARCH_URL, displayFolderName, selectedFolderNode]);
+    return finalUrl;
+  }, [configs?.DOCUMENT_SEARCH_URL, displayFolderName, selectedFolderNode]);
 
 
   // Auto-select single template
@@ -238,7 +259,7 @@ const getDocumentSearchUrl = useCallback(() => {
     });
 
     if (duplicates.length > 0) {
-      const message = duplicates.length === 1 
+      const message = duplicates.length === 1
         ? `File "${duplicates[0]}" is already uploaded!`
         : `${duplicates.length} file(s) already uploaded!`;
       toast.error(message, errorToastObj);
@@ -254,10 +275,10 @@ const getDocumentSearchUrl = useCallback(() => {
     if (!newFiles || newFiles.length === 0) return;
 
     const uniqueFiles = filterDuplicateFiles(newFiles, uploadedFiles);
-    
+
     if (uniqueFiles.length > 0) {
       const totalFiles = uploadedFiles.length + uniqueFiles.length;
-      
+
       if (totalFiles > MAX_FILES) {
         toast.error(`Maximum ${MAX_FILES} files allowed!`, errorToastObj);
         return;
@@ -273,7 +294,7 @@ const getDocumentSearchUrl = useCallback(() => {
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     setIsDragging(false);
     dragCounterRef.current = 0;
 
@@ -288,7 +309,7 @@ const getDocumentSearchUrl = useCallback(() => {
     setIsCollapsed(false);
     const selectedFiles = Array.from(e.target.files || []);
     addFiles(selectedFiles);
-    
+
     // Reset input to allow selecting same file again after removal
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -309,7 +330,7 @@ const getDocumentSearchUrl = useCallback(() => {
   const handleDragEnter = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     dragCounterRef.current++;
     if (dragCounterRef.current === 1) {
       setIsDragging(true);
@@ -322,7 +343,7 @@ const getDocumentSearchUrl = useCallback(() => {
   const handleDragLeave = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     dragCounterRef.current--;
     if (dragCounterRef.current === 0) {
       setIsDragging(false);
@@ -451,8 +472,8 @@ const getDocumentSearchUrl = useCallback(() => {
         toast.success("Uploaded Successfully", successToastObj);
         setIsCollapsed(false);
         setUploadedFiles([]);
-        console.log(selectedFolderTemplates,folderTemplatesList, "templates after uploaded")
-        if(folderTemplatesList?.length !== 1){
+        console.log(selectedFolderTemplates, folderTemplatesList, "templates after uploaded")
+        if (folderTemplatesList?.length !== 1) {
           setSelectedFolderTemplates(null);
         }
         setFileDocumentTitles({});
@@ -486,6 +507,7 @@ const getDocumentSearchUrl = useCallback(() => {
     setSelectedTabs({ options: filteredTabs });
     setClientMetaTabClosed(true);
     setSelectedFolderTemplates(null);
+    clearMultiSelectedDocs()
   }, [
     setSelectedCollection,
     setUploadedFiles,
@@ -493,29 +515,53 @@ const getDocumentSearchUrl = useCallback(() => {
     setSelectedTabs,
     setClientMetaTabClosed,
     setSelectedFolderTemplates,
+    clearMultiSelectedDocs,
   ]);
 
-  /**
-   * Delete individual file
-   */
-  const handleDeleteFile = useCallback((fileToDelete) => {
-    const updatedFiles = uploadedFiles.filter(
-      (f) => f?.name !== fileToDelete.name
-    );
-    setUploadedFiles(updatedFiles);
 
-    const newTitles = { ...fileDocumentTitles };
-    delete newTitles[fileToDelete.name];
-    setFileDocumentTitles(newTitles);
-
-    if (updatedFiles.length === 0) {
-      const filteredTabs = selectedTabs.options?.filter(
-        (tab) => tab.name !== "Client Metadata"
+  const handleDeleteFile = useCallback(
+    (fileToDelete) => {
+      // 1️⃣ Remove from uploadedFiles (UI)
+      const updatedFiles = uploadedFiles.filter(
+        (f) => f?.name !== fileToDelete.name
       );
-      setSelectedTabs({ options: filteredTabs });
-      setClientMetaTabClosed(true);
-    }
-  }, [uploadedFiles, setUploadedFiles, fileDocumentTitles, selectedTabs, setSelectedTabs, setClientMetaTabClosed]);
+      setUploadedFiles(updatedFiles);
+
+      // 2️⃣ Remove file title (UI)
+      const newTitles = { ...fileDocumentTitles };
+      delete newTitles[fileToDelete.name];
+      setFileDocumentTitles(newTitles);
+
+      // 3️⃣ Remove from store multiSelectedDocs (VERY IMPORTANT)
+      // find doc.id stored in store based on file name
+      const doc = multiSelectedDocs.find(
+        (d) => d.name === fileToDelete.name
+      );
+
+      if (doc) {
+        removeSelectedDoc(doc.id); // ← store action
+      }
+
+      // 4️⃣ Remove Client Metadata tab if needed
+      if (updatedFiles.length === 0) {
+        const filteredTabs = selectedTabs.options?.filter(
+          (tab) => tab.name !== "Client Metadata"
+        );
+        setSelectedTabs({ options: filteredTabs });
+        setClientMetaTabClosed(true);
+      }
+    },
+    [
+      uploadedFiles,
+      setUploadedFiles,
+      fileDocumentTitles,
+      multiSelectedDocs,   // 👈 required reference
+      removeSelectedDoc,   // 👈 store function
+      selectedTabs,
+      setSelectedTabs,
+      setClientMetaTabClosed,
+    ]
+  );
 
   /**
    * Handle document selection
@@ -554,7 +600,162 @@ const getDocumentSearchUrl = useCallback(() => {
       setSelectedTabs({ options: updatedTabs });
     }
   }, [selectedTabs, setSelectedTabs, selectedDocumentId]);
+  console.log("uploadedFiles", uploadedFiles)
 
+  function addToMultiSelectedDocs(id, fileName) {
+    multiSelectedDocs(prev => {
+      const exists = prev.some(item => item.id === id);
+      if (exists) return prev;
+
+      return [...prev, { id, fileName }];
+    });
+  }
+  // useEffect(() => {
+  //   if (!folderTreePath) return;
+
+  //   async function processFiles() {
+  //     const saved = localStorage.getItem("CopyData");
+
+  //     if (!saved) return;
+
+  //     const parsed = JSON.parse(saved);
+  //     const idsFromLocal = parsed.ID;
+  //     console.log("IDs From Local:", idsFromLocal);
+
+  //     let existingList = [...SelectedFileNameAndId];
+
+  //     // Remove duplicate IDs
+  //     const uniqueIds = [...new Set(idsFromLocal)];
+
+  //     for (const id of uniqueIds) {
+  //       const found = existingList.find((x) => x.id == id);
+
+  //       // Only call API if not found
+  //       if (!found) {
+  //         console.log("Fetching fileName for:", id);
+
+  //         const res = await getDocumentFileNameByID(id);
+
+  //         if (res?.Document) {
+  //           existingList.push({
+  //             id: res.Document.ID,
+  //             fileName: res.Document.FileName,
+  //           });
+  //         }
+  //       }
+  //     }
+
+  //     console.log("Final Updated List:", existingList);
+
+  //     const mockFiles = existingList.map((doc) => ({
+  //       name: doc.fileName,
+  //       id: doc.id,
+  //       size: 0,
+  //       type: "application/octet-stream",
+  //       lastModified: Date.now(),
+  //     }));
+
+  //     addFiles(mockFiles);
+  //   }
+
+  //   processFiles();
+
+  // }, [isUploadable,pasteTrigger]);
+  useEffect(() => {
+    if (!folderTreePath) return;
+    if (!pasteTrigger) return;
+    if (!isUploadable) return;   // ⬅️ ensures API call only when upload allowed
+
+    async function processFiles() {
+      const saved = localStorage.getItem("CopyData");
+      if (!saved) return;
+
+      const parsed = JSON.parse(saved);
+      const idsFromLocal = parsed.ID || [];
+      const uniqueIds = [...new Set(idsFromLocal)];
+
+      let existingList = [...SelectedFileNameAndId];
+
+      for (const id of uniqueIds) {
+        const found = existingList.find((x) => x.id == id);
+
+        if (!found) {
+          console.log("Fetching fileName for:", id);
+
+          // ⬅️ This runs ONLY when isUploadable = true
+          const res = await getDocumentFileNameByID(id);
+
+          if (res?.Document) {
+            existingList.push({
+              id: res.Document.ID,
+              fileName: res.Document.FileName,
+            });
+          }
+        }
+      }
+
+      const mockFiles = existingList.map((doc) => ({
+        name: doc.fileName,
+        id: doc.id,
+        size: 0,
+        type: "application/octet-stream",
+        lastModified: Date.now(),
+      }));
+
+      addFiles(mockFiles);
+    }
+
+    processFiles();
+  }, [pasteTrigger, isUploadable, folderTreePath]);
+
+  console.log("isUploadable", isUploadable)
+  const handlePasteFolderPath = async () => {
+    try {
+      //   const getData= localStorage.getItem("CopyData")
+
+      //       // Now run async code OUTSIDE setState
+      // const newIds = updatedDocs.map((d) => d.id);
+      // setSelectedIds(newIds);
+      // updateLocalStorage(newIds);
+
+      // ✅ Now await is allowed
+      // const pasteResponse = await getDocumentFileNameByID(newIds);
+
+      // const res = getFolderTreeByPath(folder?.path, true);
+      // const liveFolder = res?.folder || folder;
+      // const isUploadable = liveFolder?.canUpload === true;
+      // console.log("Pasted folder path:", folder?.path );
+      // setFolderTreePath(folder?.path)
+      const saved = localStorage.getItem("CopyData");
+      // 🔥 Fire trigger so Component B re-runs
+      setPasteTrigger(Date.now());
+      if (!saved) {
+        toast.error("No files have been copied");
+        return;
+      }
+
+      // 🔹 Parse the saved data
+      const parsed = JSON.parse(saved);
+
+      // ✅ Build payload using saved IDs
+      let payload = {
+        DocType: parsed?.DocType || "D",
+        ID: parsed?.ID || [],
+        TargetType: "Folder",
+        TargetFolder: folderTreePath || "",
+      };
+
+      if (isUploadable) {
+        // const pasteResponse = await pasteDocumentMainPath(payload);
+        toast.success('Pasted Successfully', successToastObj)
+      } else {
+        toast.error("Paste is not allowed");
+      }
+
+    } catch (err) {
+      toast.error(err.message, errorToastObj);
+    }
+  }
   return (
     <Card className="w-full h-[calc(100vh-4rem)] md:h-full rounded-2xl shadow-md border bg-white flex flex-col overflow-hidden">
       {/* Fixed Header */}
@@ -584,7 +785,7 @@ const getDocumentSearchUrl = useCallback(() => {
               </TabsTrigger>
               <TabsTrigger
                 value="documentSearch"
-                onClick={handleUploadTabClick}
+                onClick={handleDocumentsTabClick}
                 className="rounded-none data-[state=active]:rounded-lg data-[state=active]:shadow-none shadow-none hover:rounded-lg h-full px-6 data-[state=active]:border-b-2 data-[state=active]:border-b-primary"
               >
                 Show Files
@@ -612,11 +813,12 @@ const getDocumentSearchUrl = useCallback(() => {
                 <div className="w-full h-full flex flex-col">
                   <div
                     className={`w-full h-full flex flex-col justify-center items-center rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer relative
-                    ${
-                      isDragging
+                      ${isDragging
                         ? "bg-blue-50 border-blue-400 shadow-inner"
-                        : "bg-white border-gray-300 hover:border-blue-400 hover:bg-blue-50"
-                    }`}
+                        : hoverPaste
+                          ? "bg-gray-100 border-gray-800"   // 👈 YOUR REQUIRED STYLE
+                          : "bg-white border-gray-300 hover:border-blue-400 hover:bg-blue-50"
+                      }`}
                     onDragOver={handleDragOver}
                     onDragEnter={handleDragEnter}
                     onDragLeave={handleDragLeave}
@@ -635,21 +837,61 @@ const getDocumentSearchUrl = useCallback(() => {
                     <div className="flex flex-col items-center justify-center gap-4 p-6 text-center pointer-events-none">
                       <div
                         className={`p-4 rounded-full transition-all duration-300
-                        ${
-                          isDragging
+                        ${isDragging
                             ? "bg-blue-100 text-blue-600 scale-110"
                             : "bg-gray-100 text-gray-500"
-                        }`}
+                          }`}
                       >
                         <Upload size={32} />
                       </div>
 
                       <div className="space-y-2">
-                        <p className="text-gray-800 font-semibold text-lg flex items-center gap-2 justify-center">
-                          <Folder className="w-5 h-5 text-blue-500" />
-                          Upload to {selectedFolderNode?.folderName}
-                        </p>
-                        <p className="text-sm text-gray-500">
+                        {/* <div
+                          className={`flex items-center w-full pointer-events-auto ${pasteClipboardButtonEnable ? "justify-between" : "justify-center"
+                            }`}
+                        >
+                          <p className="text-gray-800 font-semibold text-lg flex items-center gap-2">
+                            <Folder className="w-5 h-5 text-blue-500" />
+                            Upload {displayFolderName}
+                          </p>
+
+                          {pasteClipboardButtonEnable && (
+                            <Button
+                              id="pasteClipboardButton"
+                              className="bg-gray-900/90 text-xs px-3 py-1 text-white rounded-xl hover:bg-gray-900 disabled:opacity-50"
+                              onClick={(e) => {
+                                e.stopPropagation(); // prevent triggering file select
+                                handlePasteFolderPath();
+                              }}
+                                onMouseEnter={() => setHoverPaste(true)}
+                                onMouseLeave={() => setHoverPaste(false)}
+                            >
+                              Paste Files
+                            </Button>
+                          )}
+                        </div> */}
+                        <div className="relative w-full pointer-events-auto flex items-center">
+                          <p className="absolute left-1/2 -translate-x-1/2 text-gray-800 font-semibold text-lg flex items-center gap-2">
+                            <Folder className="w-5 h-5 text-blue-500" />
+                            Upload {displayFolderName}
+                          </p>
+                          {pasteClipboardButtonEnable && (
+                            <Button
+                              id="pasteClipboardButton"
+                              className="ml-auto bg-gray-900/90 text-xs px-3 py-1 text-white rounded-xl hover:bg-gray-900 disabled:opacity-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePasteFolderPath();
+                              }}
+                              onMouseEnter={() => setHoverPaste(true)}
+                              onMouseLeave={() => setHoverPaste(false)}
+                            >
+                              Paste Files
+                            </Button>
+                          )}
+
+                        </div>
+                        <p className="text-sm text-gray-500 py-2">
                           {isDragging
                             ? "Drop your files here"
                             : "Drag & drop files here, or click to browse"}
@@ -657,14 +899,25 @@ const getDocumentSearchUrl = useCallback(() => {
                       </div>
                     </div>
 
+
                     {isDragging && (
                       <div className="absolute inset-0 bg-blue-400 opacity-5 animate-pulse rounded-3xl pointer-events-none" />
                     )}
                   </div>
+                  {/* <div>
+                        {pasteClipboardButtonEnable && (
+                      <Button
+                        className="bg-gray-900/90 text-sm px-4 py-1 text-white rounded-xl hover:bg-gray-900 disabled:opacity-50 pointer-events-auto"
+                        onClick={handlePasteFolderPath}
+                      >
+                        Paste Clipboard
+                      </Button>
+                    )}
+                  </div> */}
                 </div>
 
                 {/* Right Panel - Configuration & Files */}
-                {uploadedFiles?.length > 0 && (
+                {(folderTreePath || uploadedFiles?.length > 0) && (
                   <div className="w-1/2 min-w-1/2 h-full flex flex-col">
                     {/* Scrollable Content */}
                     <div className="flex-1 overflow-y-auto pr-2 flex flex-col justify-start items-start gap-6">
@@ -693,11 +946,10 @@ const getDocumentSearchUrl = useCallback(() => {
                                 <div className="items-center gap-3 min-w-0 flex-1 hidden xl:flex">
                                   <div className="p-2 bg-white rounded-lg flex-shrink-0">
                                     <LayoutTemplate
-                                      className={`h-4 w-4 ${
-                                        selectedFolderTemplates
-                                          ? "text-blue-500"
-                                          : "text-gray-400"
-                                      }`}
+                                      className={`h-4 w-4 ${selectedFolderTemplates
+                                        ? "text-blue-500"
+                                        : "text-gray-400"
+                                        }`}
                                     />
                                   </div>
                                   <div className="flex-1 min-w-0">
@@ -790,12 +1042,11 @@ const getDocumentSearchUrl = useCallback(() => {
                                                           false
                                                         );
                                                       }}
-                                                      className={`text-sm text-gray-700 px-4 py-3 hover:bg-gray-50 cursor-pointer ${
-                                                        selectedFolderTemplates ===
+                                                      className={`text-sm text-gray-700 px-4 py-3 hover:bg-gray-50 cursor-pointer ${selectedFolderTemplates ===
                                                         templateName
-                                                          ? "bg-blue-50 text-blue-700"
-                                                          : ""
-                                                      }`}
+                                                        ? "bg-blue-50 text-blue-700"
+                                                        : ""
+                                                        }`}
                                                     >
                                                       <span className="truncate w-full block">
                                                         {templateName}
@@ -833,9 +1084,8 @@ const getDocumentSearchUrl = useCallback(() => {
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white rounded-lg">
                                   <MessageSquare
-                                    className={`h-4 w-4 ${
-                                      startAiChat ? "text-blue-500" : "text-gray-400"
-                                    }`}
+                                    className={`h-4 w-4 ${startAiChat ? "text-blue-500" : "text-gray-400"
+                                      }`}
                                   />
                                 </div>
                                 <div>
@@ -992,14 +1242,83 @@ const getDocumentSearchUrl = useCallback(() => {
                   </div>
                 )}
               </div>
+              //         <div className="h-full flex gap-4 p-4">
+              //           {/* Left Upload Area */}
+              //           <div className="w-full h-full flex flex-col">
+              //             <div
+              //               className={`w-full h-full flex flex-col justify-center items-center rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer relative
+              //   ${isDragging ? "bg-blue-50 border-blue-400 shadow-inner" : "bg-white border-gray-300 hover:border-blue-400 hover:bg-blue-50"}
+              // `}
+              //               onDragOver={handleDragOver}
+              //               onDragEnter={handleDragEnter}
+              //               onDragLeave={handleDragLeave}
+              //               onDrop={handleDrop}
+              //               onClick={(e) => {
+              //                 // Prevent upload box click when pressing clipboard button
+              //                 if (e.target.closest("#pasteClipboardButton")) return;
+              //                 triggerFileSelect();
+              //               }}
+              //             >
+              //               <input
+              //                 type="file"
+              //                 ref={fileInputRef}
+              //                 onChange={handleFileChange}
+              //                 multiple
+              //                 className="hidden"
+              //                 aria-label="File upload input"
+              //               />
+
+              //               {/* Inside Upload Content */}
+              //               <div className="flex flex-col items-center justify-center gap-4 p-6 text-center pointer-events-none">
+              //                 <div
+              //                   className={`p-4 rounded-full transition-all duration-300 ${isDragging ? "bg-blue-100 text-blue-600 scale-110" : "bg-gray-100 text-gray-500"
+              //                     }`}
+              //                 >
+              //                   <Upload size={32} />
+              //                 </div>
+
+              //                 <div className="space-y-2 w-full">
+              //                   {/* Upload to + Paste Clipboard Row */}
+              //                   <div className="flex items-center justify-between w-full pointer-events-auto">
+              //                     <p className="text-gray-800 font-semibold text-lg flex items-center gap-2">
+              //                       <Folder className="w-5 h-5 text-blue-500" />
+              //                       Upload to {displayFolderName}
+              //                     </p>
+
+              //                     {pasteClipboardButtonEnable && (
+              //                       <Button
+              //                         id="pasteClipboardButton"
+              //                         className="bg-gray-900/90 text-xs px-3 py-1 text-white rounded-xl hover:bg-gray-900 disabled:opacity-50"
+              //                         onClick={handlePasteFolderPath}
+              //                       >
+              //                         Paste Clipboard
+              //                       </Button>
+              //                     )}
+              //                   </div>
+
+              //                   <p className="text-sm text-gray-500">
+              //                     {isDragging
+              //                       ? "Drop your files here"
+              //                       : "Drag & drop files here, or click to browse"}
+              //                   </p>
+              //                 </div>
+              //               </div>
+
+              //               {isDragging && (
+              //                 <div className="absolute inset-0 bg-blue-400 opacity-5 animate-pulse rounded-3xl pointer-events-none" />
+              //               )}
+              //             </div>
+              //           </div>
+              //         </div>
+
             )}
           </TabsContent>
           <TabsContent value="documentSearch" className="h-full m-0 p-0">
-                <div className="w-full h-full flex flex-col">
-                  {selectedFolder ? (
-                    <>
-                      {/* Info banner */}
-                      {/* <div className="flex-shrink-0 px-4 py-3 bg-blue-50 border-b border-blue-100">
+            <div className="w-full h-full flex flex-col">
+              {selectedFolder ? (
+                <>
+                  {/* Info banner */}
+                  {/* <div className="flex-shrink-0 px-4 py-3 bg-blue-50 border-b border-blue-100">
                         <div className="flex items-center gap-2 text-sm text-blue-700">
                           <Info className="w-4 h-4 flex-shrink-0" />
                           <span className="truncate">
@@ -1007,70 +1326,70 @@ const getDocumentSearchUrl = useCallback(() => {
                           </span>
                         </div>
                       </div> */}
-                      
-                      {/* Iframe container */}
-                      <div className="flex-1 w-full overflow-hidden relative bg-white">
-                        {/* Loading state */}
-                        {iframeLoading && !iframeError && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
-                            <div className="flex flex-col items-center gap-3">
-                              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                              <p className="text-sm text-gray-600">Loading document search...</p>
-                            </div>
-                          </div>
-                        )}
 
-                        {/* Error state */}
-                        {iframeError && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
-                            <div className="flex flex-col items-center gap-3 p-8 text-center">
-                              <AlertCircle className="w-12 h-12 text-red-500" />
-                              <h3 className="text-lg font-semibold text-gray-900">Failed to Load</h3>
-                              <p className="text-sm text-gray-600 max-w-md">
-                                Unable to load the document search interface. Please check your connection and try again.
-                              </p>
-                              <Button
-                                onClick={() => {
-                                  setIframeError(false);
-                                  setIframeLoading(true);
-                                }}
-                                className="mt-2"
-                              >
-                                Retry
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Iframe */}
-                        <iframe
-                          key={selectedFolder.id} // Force reload on folder change
-                          src={getDocumentSearchUrl()}
-                          className="w-full h-full border-0"
-                          title="Document Search"
-                          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-                          onLoad={() => {
-                            setIframeLoading(false);
-                            setIframeError(false);
-                          }}
-                          onError={() => {
-                            setIframeLoading(false);
-                            setIframeError(true);
-                          }}
-                        />
+                  {/* Iframe container */}
+                  <div className="flex-1 w-full overflow-hidden relative bg-white">
+                    {/* Loading state */}
+                    {iframeLoading && !iframeError && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
+                        <div className="flex flex-col items-center gap-3">
+                          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                          <p className="text-sm text-gray-600">Loading document search...</p>
+                        </div>
                       </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full p-8">
-                      <Search className="w-12 h-12 text-gray-300 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No Folder Selected</h3>
-                      <p className="text-sm text-gray-600 text-center max-w-md">
-                        Please select a folder from the sidebar to search for documents.
-                      </p>
-                    </div>
-                  )}
+                    )}
+
+                    {/* Error state */}
+                    {iframeError && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+                        <div className="flex flex-col items-center gap-3 p-8 text-center">
+                          <AlertCircle className="w-12 h-12 text-red-500" />
+                          <h3 className="text-lg font-semibold text-gray-900">Failed to Load</h3>
+                          <p className="text-sm text-gray-600 max-w-md">
+                            Unable to load the document search interface. Please check your connection and try again.
+                          </p>
+                          <Button
+                            onClick={() => {
+                              setIframeError(false);
+                              setIframeLoading(true);
+                            }}
+                            className="mt-2"
+                          >
+                            Retry
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Iframe */}
+                    <iframe
+                      key={selectedFolder.id} // Force reload on folder change
+                      src={getDocumentSearchUrl()}
+                      className="w-full h-full border-0"
+                      title="Document Search"
+                      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+                      onLoad={() => {
+                        setIframeLoading(false);
+                        setIframeError(false);
+                      }}
+                      onError={() => {
+                        setIframeLoading(false);
+                        setIframeError(true);
+                      }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full p-8">
+                  <Search className="w-12 h-12 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Folder Selected</h3>
+                  <p className="text-sm text-gray-600 text-center max-w-md">
+                    Please select a folder from the sidebar to search for documents.
+                  </p>
                 </div>
-              </TabsContent>
+              )}
+            </div>
+          </TabsContent>
 
           {/* Documents Tab */}
           <TabsContent value="documents" className="flex-1 h-full m-0">

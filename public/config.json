@@ -1,7 +1,9 @@
 {
-  "NEXT_PUBLIC_DFX_API_BASE_URL": "http://localhost/DFXDMSLite_v2/dfxapi_demo/",
+  "NEXT_PUBLIC_DFX_API_BASE_URL": "http://localhost/DFXDMSLite/dfxapi_demo/",
   "NEXT_PUBLIC_DFX_API_UI_BASE_URL": "http://localhost/DFX_NEXT_API/",
   "NEXT_PUBLIC_DFX_API_CLIENT_FOLDER_BASE_URL": "http://localhost/DFXDMSLite/Client360",
+  "NEXT_PUBLIC_DFX_API_DEMO_BASE_URL": "http://localhost/DFXDMSLite/dfxapi_demo/",
+  "NEXT_PUBLIC_DFX_API_DOCUMENT_FILE_URL":"http://localhost/dfxdmslite/dfxapi_demo/",
 
   "FETCH_USER_SERVICE_ENDPOINT": "App/User",
   
@@ -31,17 +33,19 @@
   "FETCH_CLIENT_FOLDER_LIST_SERVICE_ENDPOINT": "/Search/DynamicField/ClientList?source=Client",
 
   "FETCH_FOLDER_DATA_SERVICE_ENDPOINT": "/Search/GetClientFolder",
-"FETCH_FULL_FOLDER_DATA_SERVICE_ENDPOINT":"/Search/GetFullClientFolder",
-"FETCH_CLIENT_FULL_FOLDER_LIST_SERVICE_ENDPOINT":"/Search/GetFullClientFolder",
+
+  "PASTE_DOCUMENT_ENDPOINT": "/DMS/Document/Paste",
+  "GET_DOCUMENTFILE_BY_ID_ENDPOINT":"DMS/DocumentData",
+
   "CLIENT_METADATA_URL": "http://localhost/DFXDMSLite/dfxwebapp_demo/Email/Mailproperty?application=next",
   "CLIENT_PREVIEW_URL": "http://localhost/DFXDMSLite/dfxsync_demo/Home/Preview?repository=Stonehage&id=${selectedDocumentId}&ext=${ext}",
 
   "NEXT_PUBLIC_REPOSITORY_NAME": "LFRepo",
-  "NEXT_PUBLIC_DFX_BASE_PATH_URL": "/Documentworkspacev2", 
+  "NEXT_PUBLIC_DFX_BASE_PATH_URL": "/test_app", 
 
   "TRANSLATE_URL": "http://localhost:3000/?id=",
 
-  "DOCUMENT_SEARCH_URL": "https://app.xectec.in/dfxsearch?pagelocation=frontoffice",
+  "DOCUMENT_SEARCH_URL": "http://localhost/dfxsearch?ActiveClientDocuments%5BFilters%5D%5B",
 
   "MAX_FILES_SIZE": "20",
 
@@ -58,13 +62,12 @@
     "SUPPORT_LABEL_NAME": "DFX Support",
 
   "COLLECTION_LABEL": "library",
-  "SELECT_CLIENT_FOLDER":"Select Client Folder",
 
   "FRONT_OFFICE_NAME": "Front Office",
 
   "DOCUMENT_WORKSPACE_NAME": "Document Workspace",
   
-  "DEFAULT_TAB_OPTION": "", "options": ["mydocuments", "clientfolder", "searchDMSById"],
+  "DEFAULT_TAB_OPTION": "clientfolder", "options": ["mydocuments", "clientfolder", "searchDMSById"],
 
   "labels": {
     "upload_documents": {

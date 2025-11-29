@@ -223,7 +223,7 @@ const FileDropper = () => {
 
         // Filter tabs and update state properly
         const previewAndChatTabs = tabsList?.filter(
-          tab => tab.name === "Preview" || tab.name === "Metadata"
+          tab => tab.name === "Preview" || tab.name === "Chat"
         ) || [];
 
         setSelectedTabs({ options: previewAndChatTabs });

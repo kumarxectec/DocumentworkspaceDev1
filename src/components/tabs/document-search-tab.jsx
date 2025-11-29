@@ -66,8 +66,12 @@ const DocumentSearchTab = ({ title, content, activeTab }) => {
   const menuRef = useRef(null);
   const plusButtonRef = useRef(null);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [isSelectAll, setIsSelectAll] = useState(false);
   const selectAllRef = useRef(null);
+  const [tooltipCopiedOrNot, setTooltipCopiedOrNot] = useState({});
+
   const LOCAL_STORAGE_KEY = "CopyData";
+  // const [multiSelectedDocs,setMultiSelectedDocs]= useState([])
 
   const {
     selectedDocumentId,
@@ -87,11 +91,12 @@ const DocumentSearchTab = ({ title, content, activeTab }) => {
     setDocumentsList,
     setSelectedCollection,
     setSelectedFolder,
+      multiSelectedDocs, 
+  setMultiSelectedDocs,  
     setSelectedClientFolder,
     setShowNewCollectionInput,
     setNewCollectionName,
     setSelectedDocument,
-    clearDocumentSelection
   } = useStore();
 
   const triggerUploadToMyDocuments = () => {
@@ -197,6 +202,10 @@ const DocumentSearchTab = ({ title, content, activeTab }) => {
       toggleCollapse();
     }
   }
+  // Add this to your component to debug
+useEffect(() => {
+  console.log("multiSelectedDocs array:", multiSelectedDocs);
+}, [multiSelectedDocs]);
 
   const triggerSearchDMSById = () => {
 
@@ -242,9 +251,7 @@ const DocumentSearchTab = ({ title, content, activeTab }) => {
   }
 
   useEffect(() => {
-    if (!configs?.DEFAULT_TAB_OPTION) {
-    return;
-  } else if (configs?.DEFAULT_TAB_OPTION === 'mydocuments') {
+    if (configs?.DEFAULT_TAB_OPTION === 'mydocuments') {
     triggerUploadToMyDocuments();
   } else if (configs?.DEFAULT_TAB_OPTION === 'clientfolder') {
     triggerUploadToClientFolder();
@@ -311,34 +318,46 @@ const DocumentSearchTab = ({ title, content, activeTab }) => {
         ID: ids,
       };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
+      setIsSelectAll(true);
     } else {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
+      setIsSelectAll(false);
     }
   };
 
   // 🖱 Handle Select All toggle
-  const handleSelectAll = () => {
-    let newIds = [];
-    if (selectedIds.length !== documents.length) {
-      newIds = documents.map((item) => item.id); // select all
-    }
-    setSelectedIds(newIds);
-    updateLocalStorage(newIds);
-  };
+  // const handleSelectAll = () => {
+  //   let newIds = [];
+  //   if (selectedIds.length !== documents.length) {
+  //     newIds = documents.map((item) => item.id); // select all
+  //   }
+  //   setSelectedIds(newIds);
+  //   updateLocalStorage(newIds);
+  // };
+const handleSelectAll = () => {
+  let newDocs = [];
 
-  // 🖱 Handle individual item toggle
-  const handleToggleItem = (id) => {
-    setSelectedIds((prev) => {
-      let newIds;
-      if (prev.includes(id)) {
-        newIds = prev.filter((itemId) => itemId !== id);
-      } else {
-        newIds = [...prev, id];
-      }
-      updateLocalStorage(newIds);
-      return newIds;
-    });
-  };
+  // If all selected → unselect all
+  if (multiSelectedDocs.length === documents.length) {
+    newDocs = [];
+  } else {
+    // Select all documents
+    newDocs = documents.map((doc) => ({
+      id: doc.id,
+      name: doc.name,
+    }));
+  }
+
+  // Update store
+  setMultiSelectedDocs(newDocs);
+
+  // If you want to maintain selectedIds for UI checkbox logic
+  const newIds = newDocs.map((d) => d.id);
+  setSelectedIds(newIds);
+  updateLocalStorage(newIds); // if you need local persistence
+};
+
+
 
   const handleCopyName = async (name) => {
     try {
@@ -353,7 +372,6 @@ const DocumentSearchTab = ({ title, content, activeTab }) => {
     setDocuments((prevDocuments) =>
       prevDocuments.filter((doc) => doc.id !== id)
     );
-    clearDocumentSelection()
     toast.success("Document removed successfully !", successToastObj);
   };
 
@@ -361,12 +379,48 @@ const DocumentSearchTab = ({ title, content, activeTab }) => {
     setIsCollapsed(!isCollapsed);
   };
 
-  const handleSelectDocument = (item) => {
-    setSelectedDocumentId(item.id);
-    setSelectedDocument(item)
+const handleSelectDocument = async (item, event) => {
+  event.stopPropagation();
+
+  // MULTI SELECT
+  if (event.ctrlKey || event.metaKey) {
+
+  let updatedDocs = [];
+
+    setMultiSelectedDocs((prev) => {
+      console.log("Prev",prev)
+      const exists = prev.some((doc) => doc.id === item.id);
+      setTooltipCopiedOrNot()
+      updatedDocs = exists
+        ? prev.filter((doc) => doc.id !== item.id)
+        : [...prev, { id: item.id, name: item.name }];
+
+      return updatedDocs;
+    });
+    setTooltipCopiedOrNot((prev) => ({
+      ...prev,
+      [item.id]: updatedDocs.some((d) => d.id === item.id) ? "Copied" : "Not Copied"
+    }));
+
+    // Now run async code OUTSIDE setState
+    const newIds = updatedDocs.map((d) => d.id);
+    setSelectedIds(newIds);
+    updateLocalStorage(newIds);
+    return;
+  }
+
+  // SINGLE SELECT
+  const single = [{ id: item.id, name: item.name }];
+  setMultiSelectedDocs(single);
+  setSelectedIds([item.id]);
+  updateLocalStorage([item.id]);
+
+  setSelectedDocumentId(item.id);
+  setSelectedDocument(item);
+};
 
 
-  };
+
 
   const handleClearAllClick = () => {
     const { clearDocumentSelection } = useStore.getState();
@@ -694,11 +748,21 @@ const DocumentSearchTab = ({ title, content, activeTab }) => {
                   <div className="w-full pt-1 text-muted-foreground font-semibold text-sm mb-2">
                     Select a document
                   </div>
-                  {/* <div onClick={handleSelectAll}
-                     className="w-full pt-1 text-muted-foreground font-semibold text-sm mb-2"
-                   >
-                     Copy All
-                   </div> */}
+                   <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handleSelectAll}
+                          className="text-xs h-7 hover:shadow-sm hover:text-muted-foreground text-muted-foreground font-medium hover:bg-gray-100 bg-gray-100/70 px-4 py-1 rounded-xl"
+                        >
+                          Copy All
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        Copy all files
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                    <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -720,16 +784,17 @@ const DocumentSearchTab = ({ title, content, activeTab }) => {
                   {documents.map((item) => (
                     <div
                       key={item.id}
-                      onClick={() => handleSelectDocument(item)}
-                      className={`
+                      onClick={(e) => handleSelectDocument(item,e)}
+                       className={`
     flex items-center justify-between gap-3 
     w-full px-3 py-2 rounded-xl cursor-pointer 
-    transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] 
-     group
-    ${selectedDocumentId === item.id
-                          ? "bg-gray-100"
-                          : "bg-white hover:bg-gray-100/80"
-                        }
+    transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]
+    group
+    ${
+      multiSelectedDocs.some((doc) => doc.id === item.id)
+        ? "bg-gray-100"
+        : "bg-white hover:bg-gray-100/80"
+    }
   `}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -744,6 +809,9 @@ const DocumentSearchTab = ({ title, content, activeTab }) => {
                                 {item.name}
                               </p>
                             </TooltipTrigger>
+                            <TooltipContent>
+  {tooltipCopiedOrNot[item.id] ?? `${item.name} (ID: ${item.id})`}
+</TooltipContent>
                             <TooltipContent>
                               {item.name} (ID: {item.id})
                             </TooltipContent>

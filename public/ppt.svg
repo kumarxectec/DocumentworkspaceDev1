@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+  <polygon fill="transparent" points="19 20 3 20 3 0 14.2 0 19 5 19 6.7 19 20"></polygon>
+  <path fill="gray" d="M14.2,0H3V20H19V5ZM18,6.7V19H4V1h8V6h6Z"></path>
+  <rect fill="#d04525" x="1" y="4" width="9" height="8"></rect>
+  <path fill="#bcbec0" d="M11,9v4H7a4,4,0,1,0,4-4Z"></path>
+  <path fill="white" d="M7.81,6.87a1.86,1.86,0,0,1-.59,1.48,2.56,2.56,0,0,1-1.7.52H5V11H3.73V5H5.62a2.49,2.49,0,0,1,1.63.47A1.7,1.7,0,0,1,7.81,6.87ZM5,7.82h.41a1.33,1.33,0,0,0,.87-.23.81.81,0,0,0,.29-.67.83.83,0,0,0-.24-.66A1.1,1.1,0,0,0,5.55,6H5Z"></path>
+</svg>

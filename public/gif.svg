@@ -1,0 +1,9 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  height="25"
+  width="25"
+  viewBox="0 0 512 512"
+  dangerouslySetInnerHTML={{
+    __html: `<path d="M392 488H120a48 48 0 0 1-48-48V72a48 48 0 0 1 48-48h224l96 96v320a48 48 0 0 1-48 48z" fill="#cfd2fc"/><path d="M72 360h368v80a48 48 0 0 1-48 48H120a48 48 0 0 1-48-48z" fill="#5153ff"/><path d="M440 120h-48a48 48 0 0 1-48-48V24z" fill="#8690fa"/><path d="M..." />`
+  }}
+/>

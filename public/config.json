@@ -1,0 +1,100 @@
+{
+  "NEXT_PUBLIC_DFX_API_BASE_URL": "http://localhost/DFXDMSLite_v2/dfxapi_demo/",
+  "NEXT_PUBLIC_DFX_API_UI_BASE_URL": "http://localhost/DFX_NEXT_API/",
+  "NEXT_PUBLIC_DFX_API_CLIENT_FOLDER_BASE_URL": "http://localhost/DFXDMSLite/Client360",
+
+  "FETCH_USER_SERVICE_ENDPOINT": "App/User",
+  
+
+  "FETCH_DOCUMENT_DATA_SERVICE_ENDPOINT": "/DMS/Document/DataVersion",
+  "FETCH_DOCUMENT_LIST_SERVICE_ENDPOINT": "/DMS/Documents/Query",
+  
+  "FETCH_TABS_LIST_SERVICE_ENDPOINT": "api/DashboardPage/GetDashboardPageByID",
+  "FETCH_FRONT_OFFICE_TABS": "Frontoffice/GetTabs?pageType=front-office",
+  "FETCH_FRONT_OFFICE_CLIENTS_LIST": "/Frontoffice/GetLawClientList",
+  "FETCH_FRONT_OFFICE_LAW_METADATA": "/Frontoffice/GetLawMetada",
+  "FETCH_NEW_DOCUMENT_TEMPLATES": "/Frontoffice/GetTemplates",
+  "DELETE_FOLDER_SERVICE_ENDPOINT": "Frontoffice/DeleteFolder",
+  "UPSERT_FOLDER_SERVICE_ENDPOINT": "Frontoffice/UpsertFolder",
+  "RENAME_FOLDER_SERVICE_ENDPOINT": "Frontoffice/RenameFolder",
+  "SEARCH_FOLDER_SERVICE_ENDPOINT": "Frontoffice/SearchFolder",
+  "FETCH_FOLDER_CLIENT_NAME_ENDPOINT": "/Frontoffice/GetClientName",
+  "FETCH_FOLDER_CLIENT_ID_ENDPOINT": "/Frontoffice/GetClientId",
+  "FETCH_FOLDER_DOCUMENT_TYPE_ENDPOINT": "/Frontoffice/GetDocumentType",
+  "FETCH_FOLDER_DOCUMENT_SUBTYPE_ENDPOINT": "/Frontoffice/GetDocumentSubType",
+
+  "UPLOAD_FILES_SERVICE_ENDPOINT": "/DMS/UploadFromDnDFile",
+  "UPLOAD_TO_CLIENT_FOLDER_SERVICE_ENDPOINT": "/DMS/UploadFromDnDFile",
+
+  "FETCH_WORKSPACE_COLLECTION_SERVICE_ENDPOINT": "/Workspace/GetWorkspace",
+  "SAVE_NEW_WORKSPACE_COLLECTION_SERVICE_ENDPOINT": "/Workspace/Save",
+  "FETCH_CLIENT_FOLDER_LIST_SERVICE_ENDPOINT": "/Search/DynamicField/ClientList?source=Client",
+
+  "FETCH_FOLDER_DATA_SERVICE_ENDPOINT": "/Search/GetClientFolder",
+"FETCH_FULL_FOLDER_DATA_SERVICE_ENDPOINT":"/Search/GetFullClientFolder",
+"FETCH_CLIENT_FULL_FOLDER_LIST_SERVICE_ENDPOINT":"/Search/GetFullClientFolder",
+  "CLIENT_METADATA_URL": "http://localhost/DFXDMSLite/dfxwebapp_demo/Email/Mailproperty?application=next",
+  "CLIENT_PREVIEW_URL": "http://localhost/DFXDMSLite/dfxsync_demo/Home/Preview?repository=Stonehage&id=${selectedDocumentId}&ext=${ext}",
+
+  "NEXT_PUBLIC_REPOSITORY_NAME": "LFRepo",
+  "NEXT_PUBLIC_DFX_BASE_PATH_URL": "/Documentworkspacev2", 
+
+  "TRANSLATE_URL": "http://localhost:3000/?id=",
+
+  "DOCUMENT_SEARCH_URL": "https://app.xectec.in/dfxsearch?pagelocation=frontoffice",
+
+  "MAX_FILES_SIZE": "20",
+
+  "CAN_UPLOAD": true,
+
+  "TEMPLATES_FROM": "user",
+
+  "SECURITY_GROUPS": ["Administrator"],
+
+    "DOCUMENT_TITLE_NAME" : "system generated",
+
+    "CONTACT_EMAIL": "mailto:dfxsupport@stonehagefleming.com",
+
+    "SUPPORT_LABEL_NAME": "DFX Support",
+
+  "COLLECTION_LABEL": "library",
+  "SELECT_CLIENT_FOLDER":"Select Client Folder",
+
+  "FRONT_OFFICE_NAME": "Front Office",
+
+  "DOCUMENT_WORKSPACE_NAME": "Document Workspace",
+  
+  "DEFAULT_TAB_OPTION": "", "options": ["mydocuments", "clientfolder", "searchDMSById"],
+
+  "labels": {
+    "upload_documents": {
+      "label": "Upload to My Documents",
+      "sub_heading": "Upload to My Documents"
+    },
+    "add_source": {
+      "label": "Add Source",
+      "sub_heading": "Search DMS ID"
+    },
+    "client_folder": {
+      "label": "Client Documents",
+      "sub_heading": "Add to Client Folder"
+    },
+    "matter_folder": {
+      "label": "Matter Documents",
+      "sub_heading": "Save to Matter Folder"
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

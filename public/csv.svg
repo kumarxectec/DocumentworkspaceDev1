@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+  <polygon fill="transparent" points="19 20 3 20 3 0 14.2 0 19 5 19 6.7 19 20"></polygon>
+  <path fill="gray" d="M14.2,0H3V20H19V5ZM18,6.7V19H4V1h8V6h6Z"></path>
+  <rect fill="#005f01" x="1" y="4" width="9" height="8"></rect>
+  <path fill="white" d="M8.3,11.06H6.85L5.45,8.79,4.06,11.06H2.7L4.69,8,2.82,5.06H4.23L5.52,7.22,6.79,5.06H8.16L6.28,8Z"></path>
+  <rect fill="#bcbec0" x="15.1" y="7" width="1.9" height="1"></rect>
+  <rect fill="#bcbec0" x="11" y="7" width="2" height="1"></rect>
+  <rect fill="#bcbec0" x="15.1" y="10" width="1.9" height="1"></rect>
+  <rect fill="#bcbec0" x="15.1" y="13" width="1.9" height="1"></rect>
+  <rect fill="#bcbec0" x="7" y="13" width="1.9" height="1"></rect>
+  <rect fill="#bcbec0" x="11" y="10" width="2" height="1"></rect>
+  <rect fill="#bcbec0" x="11" y="13" width="2" height="1"></rect>
+  <rect fill="#bcbec0" x="15.1" y="16.1" width="1.9" height="1"></rect>
+  <rect fill="#bcbec0" x="7" y="16.1" width="1.9" height="1"></rect>
+  <rect fill="#bcbec0" x="11" y="16.1" width="2" height="1"></rect>
+</svg>
